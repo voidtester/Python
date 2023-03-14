@@ -1,0 +1,32 @@
+ #######                                                             #####                                                           
+ #       #    #  ####  #####  #   # #####  ##### #  ####  #    #    #     #  ####  #    #  ####  #    # #      ##### # #    #  ####  
+ #       ##   # #    # #    #  # #  #    #   #   # #    # ##   #    #       #    # ##   # #      #    # #        #   # ##   # #    # 
+ #####   # #  # #      #    #   #   #    #   #   # #    # # #  #    #       #    # # #  #  ####  #    # #        #   # # #  # #      
+ #       #  # # #      #####    #   #####    #   # #    # #  # #    #       #    # #  # #      # #    # #        #   # #  # # #  ### 
+ #       #   ## #    # #   #    #   #        #   # #    # #   ##    #     # #    # #   ## #    # #    # #        #   # #   ## #    # 
+ ####### #    #  ####  #    #   #   #        #   #  ####  #    #     #####   ####  #    #  ####   ####  ######   #   # #    #  ####  
+                                                                                        
+
+Script Name
+
+Renew.ps1
+
+Description
+
+This script is designed to generate SSL certificate for IIS server and bind the certificate. 
+
+Usage
+
+[Insert a description of how to run the script here]
+Options
+
+[Insert a list of command-line options for the script (if any) here, along with a brief description of what each option does.]
+Examples
+
+[Insert a few examples of how to run the script here, with explanations of what each example does.]
+Requirements
+
+[Insert a list of any requirements for running the script here, such as required software or dependencies.]
+Notes
+
+[Insert any additional notes or information about the script here, such as any known issues or limitations.]
