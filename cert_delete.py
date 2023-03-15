@@ -9,14 +9,15 @@ conf.read(conf_file)
 
 tomcat=conf['tomcat']   
     
-# Build the PowerShell command
-script_path=dir+'/Powershell/cert_delete.ps1'
-command = ["powershell.exe", "-ExecutionPolicy", "Unrestricted", script_path, tomcat['keystore'],tomcat['pass']]
-   
-# Run the PowerShell command
-result = subprocess.run(command, capture_output=True, text=True)
-   
-# Print the PowerShell script output
-print(result.stdout)
-    
+def cert_delete():
+    rca="keytool -delete -alias rootca -keystore {key} -storepass {passw}".format(key=tomcat['keystore'],passw=tomcat['pass'])
+    ica="keytool -delete -alias issuingca -keystore {key} -storepass {passw}".format(key=tomcat['keystore'],passw=tomcat['pass']) 
+    intca="keytool -delete -alias intermediateca -keystore {key} -storepass {passw}".format(key=tomcat['keystore'],passw=tomcat['pass'])
+    print(rca)
+    print(ica)
+    print(intca) 
+    os.system(rca)
+    os.system(ica)
+    os.system(intca) 
 
+cert_delete()

@@ -8,13 +8,16 @@ conf.read(conf_file)
 
 tomcat=conf['tomcat']
 
-# Build the PowerShell command
-script_path=dir+'/Powershell_scripts/cert_import.ps1'
-print(script_path)
+def cert_import():
+    rca="echo yes | keytool -import -trustcacerts -alias rootca -keystore {key} -storepass {passw} -file {rootca}".format(key=tomcat['kesytore'],passw=tomcat['pass'],rootca=tomcat['root'])
+    ica="echo yes | keytool -import -trustcacerts -alias issuingca -keystore {key} -storepass {passw} -file {issuingca}".format(key=tomcat['keystore'],passw=tomcat['pass'],issuingca=tomcat['issuing']) 
+    intca="echo yes | keytool -import -trustcacerts -alias intermediateca -keystore {key} -storepass {passw} -file {intermediateca}".format(key=tomcat['kesytore'],passw=tomcat['pass'],intermediateca=tomcat['intermediate'])
+    print(rca)
+    print(ica)
+    print(intca)  
+    os.system(rca)
+    os.system(ica)
+    os.system(intca) 
 
-command = ["powershell.exe", "-ExecutionPolicy", "Unrestricted", script_path, tomcat['keystore'],tomcat['pass'],tomcat['root'],tomcat['issuing'],tomcat['intermediate']]
-# Run the PowerShell command
-result = subprocess.run(command, capture_output=True, text=True)
-# Print the PowerShell script output
-print(result.stdout)
+cert_import()
 

@@ -7,13 +7,14 @@ conf=ConfigParser()
 conf.read(conf_file)
 
 tomcat=conf['tomcat']
-# Build the PowerShell command
+def keystore():
+    keystore="echo yes |keytool -genkey -v -keyalg RSA -alias tomcat -keystore {key} -storepass {passw} -dname CN={common},OU={unit},O={org},L={local},ST={state},C={country}".format(key=tomcat['keystore'], passw=tomcat['pass'],common=tomcat['cn'],unit=tomcat['ou'],org=tomcat['o'],local=tomcat['l'],state=tomcat['st'],country=tomcat['c'])
 
-script=dir+'/Powershell/keystore.ps1'
-print(script)
+    print(keystore)
+    os.system(keystore)
 
-command=["powershell.exe", "-ExecutionPolicy", "Unrestricted", script,tomcat['keystore'],tomcat['pass'],tomcat['csr'],tomcat['cn'],tomcat['o'],tomcat['st'],tomcat['ou'],tomcat['l'],tomcat['c']]
-# Run the PowerShell command
-result = subprocess.run(command, capture_output=True, text=True)
-# Print the PowerShell script output
-print(result.stdout)
+    csr="keytool -certreq -alias tomcat -keyalg RSA -file {csrfile} -keystore {key} -storepass {passw}".format(csrfile=tomcat['csr'], key=tomcat['keystore'],passw=tomcat['pass'])
+    print(csr) 
+    os.system(csr)
+
+keystore()
