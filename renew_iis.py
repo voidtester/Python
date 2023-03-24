@@ -9,19 +9,17 @@ conf.read(conf_file)
 
 iis=conf['IIS']
 
+try:
+    script_path=dir+"/Powershell_scripts/renew.ps1"    
+    # Build the PowerShell command
+    command = ["powershell.exe", "-ExecutionPolicy", "Unrestricted", script_path, iis['hostname'], iis['CAName'],iis['sitename'],iis['certfile']]
 
-script_path=dir+"/Powershell_scripts/renew.ps1"    
-# Build the PowerShell command
-command = ["powershell.exe", "-ExecutionPolicy", "Unrestricted", script_path, iis['hostname'], iis['CAName'],iis['sitename'],iis['certfile']]
+    # Run the PowerShell command
+    result = subprocess.run(command, capture_output=True, text=True)
 
-# Run the PowerShell command
-result = subprocess.run(command, capture_output=True, text=True)
-
-# Print the PowerShell script output
-print(result.stdout)
-
-
-
-
-
-  
+    # Print the PowerShell script output
+    print(result.stdout)
+    
+except Exception as e:
+        print(e)
+    
