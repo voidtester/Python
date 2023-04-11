@@ -2,7 +2,11 @@ import subprocess
 import configparser
 import os
 import xml.etree.ElementTree as ET
-import OpenSSL.crypto as crypto
+from cryptography import x509
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.serialization import load_pkcs12
+
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 conf = configparser.ConfigParser()
@@ -75,43 +79,7 @@ def cert_import():
 
     finally:
         # To change the server.xml file
-
-        # parse the server.xml file
-        file = tomcat['conf_path']
-        tree = ET.parse(file)
-        root = tree.getroot()
-
-        # find the Service element with name="Catalina"
-        service_elem = root.find("./Service[@name='Catalina']")
-
-        # create the Connector element
-        connector_elem = ET.Element('Connector')
-        connector_elem.set('port', '8443')
-        connector_elem.set('protocol', 'HTTP/1.1')
-        connector_elem.set('connectionTimeout', '20000')
-        connector_elem.set('redirectPort', '8443')
-        connector_elem.set('SSLEnabled', 'true')
-        connector_elem.set('scheme', 'https')
-        connector_elem.set('secure', 'true')
-        connector_elem.set('sslProtocol', 'TLS')
-        connector_elem.set('keystoreFile', tomcat['keystore'])
-        connector_elem.set('keystorePass', tomcat['pass'])
-
-        # insert the new Connector element before the first Engine element
-        inserted = False
-        for service_child in service_elem:
-            if service_child.tag == 'Engine':
-                service_elem.insert(list(service_elem).index(
-                    service_child), connector_elem)
-                inserted = True
-                break
-
-        if not inserted:
-            service_elem.append(connector_elem)
-
-        # write the updated server.xml file
-
-        tree.write('G:\server_copy1.xml')
+        xml_file_update(tomcat['conf_path'],r"C:\Updated.xml",tomcat['keystore'],tomcat['pass'])
 
 
 def certificate_renew_iis():
@@ -134,40 +102,22 @@ def certificate_renew_iis():
         print(e)
 
 
-def certbot_certificate():
+def certbot_certificate(domain, certificate_path):
     try:
-        # Stop the Apache service
-        # subprocess.run(["Stop-Service", "-Name", "Apache2.4"], check=True)
-
-        # Obtain the certificate using Certbot
-        subprocess.run(["certbot", "--register-unsafely-without-email", "-d", apache['domain'],
+        subprocess.run(["certbot", "--register-unsafely-without-email", "-d",domain,
                         "--manual", "--preferred-challenges", "dns", "certonly", "--config-dir=" +
-                        apache['certificate_path'],
-                        "--agree-tos", "--force-renew"], check=True)
-
-        # Start the Apache service
-        # subprocess.run(["Start-Service", "-Name", "Apache2.4"], check=True)
+                        certificate_path,
+                        "--agree-tos"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Certbot command failed with exit code {e.returncode}: {e.output}")
     except Exception as e:
-        print(e)
+        print(f"An unexpected error occurred: {e}")
+       
 
 
 def winacme_certificate_iis():
 
-    # Make winacme command for iis certificate issue.
-
-    command = ["certbot", "--register-unsafely-without-email", "-d", iisacme['domain'],
-               "--manual", "--preferred-challenges", "dns", "certonly", "--config-dir=" +
-               tomcatacme['certificate_path'],
-               "--agree-tos",
-               ]
-    # Convert the command to a string
-    command_str = " ".join(command)
-    print(command_str)
-    try:
-        # Run the command
-        os.system(command_str)
-    except Exception as e:
-        print(e)
+    certbot_certificate(iisacme['domain'],iisacme['certificate_path'])
 
     # binding the certificate to IIS
 
@@ -179,9 +129,7 @@ def winacme_certificate_iis():
     key_path = iisacme['certificate_path']+'/archive/'+iisacme['domain']+'privkey1.pem'
     pfx_path = r'C:\certificate.pfx'
     pfx_password = iisacme['pfx_password']
-    port = 443
-    site_id = iisacme['siteid']
-    hostname = iisacme['hostname']
+    
 
     command = "openssl pkcs12 -export -out {} -in {} -inkey {} -passin pass:{passw} -passout pass:{passw}".format(
         pfx_path, pem_path, key_path, passw=pfx_password)
@@ -192,74 +140,28 @@ def winacme_certificate_iis():
 
         # Command to bind the certificate using netsh
     
-    def get_appid(site_name):
-        # Connect to the IIS WMI provider
-        iis = win32com.client.GetObject("winmgmts:root\WebAdministration")
-
-        # Get the site object
-        site = iis.Get("Site.Name='{}'".format(site_name))
-
-        # Get the application object
-        app = site.Applications[0]
-
-        # Get the AppID value
-        app_id = app.AppPoolId
-
-        return app_id
-
-    # Load the PFX data into a crypto object
+    # Load the PFX file
     with open(pfx_path, 'rb') as f:
         pfx_data = f.read()
-    pfx = crypto.load_pkcs12(pfx_data, pfx_password)
 
-    # Get the certificate from the PFX data
-    cert = pfx.get_certificate()
-    
+    # Load the PFX data and extract the certificate
+    pfx = load_pkcs12(pfx_data, pfx_password)
+    cert = pfx.public_key().certificate
+
     # Calculate the thumbprint of the certificate
-    thumbprint = cert.digest("sha1").decode("utf-8")
-    thumbprint = ":".join([thumbprint[i:i+2] for i in range(0, len(thumbprint), 2)])
-    app_id=get_appid("Default Web Site")
-    binding_command = [
-       "netsh", "http", "add", "sslcert",
-        f"ipport=0.0.0.0:{port}",
-        f"certhash={thumbprint}",
-        f"appid={{{app_id}}}",
-        f"certstorename=MY",
-        "clientcertnegotiation=enable"
-       ]
-    command_str = " ".join(binding_command)
-    try:
-        # Run the command using psexec
-        subprocess.run(["psexec", "-h", "-i", "1"] +
-                       binding_command, capture_output=True)
-        print(f"Certificate bound to {hostname}:{port}")
-    except Exception as e:
-        print(e)
+    thumbprint = cert.fingerprint(hashes.SHA1())
 
+    binding(iisacme['site_name'],thumbprint)
+    
 
 def winacme_certificate_tomcat():
-    # Winacme methode not suitable changing to obtaining certificate from certbot and importing to keystore.
-    # Build the command to get the certificate
-    command = ["certbot", "--register-unsafely-without-email", "-d", tomcatacme['domain'],
-               "--manual", "--preferred-challenges", "dns", "certonly", "--config-dir=" +
-               tomcatacme['certificate_path'],
-               "--agree-tos",
-               ]
-
-    # Convert the command to a string
-    command_str = " ".join(command)
-    print(command_str)
-    try:
-        # Run the command
-        os.system(command_str)
-        print("Success")
-    except Exception as e:
-        print(e)
+    certbot_certificate(tomcatacme['domain'],tomcatacme['certificate_path'])
+    
     # combine private key and cetrtificate file to import as a single file
     pem_path = tomcatacme['certificate_path'] + \
         '/live/'+tomcatacme['domain']+'/cert.pem'
     key_path = tomcatacme['certificate_path'] + \
-        '/live/'+tomcatacme['domain']+'/key.pem'
+        '/live/'+tomcatacme['domain']+'/privkey.pem'
     combine = tomcatacme['certificate_path'] + \
         '/live/'+tomcatacme['domain']+'/combine.pem'
 
@@ -298,6 +200,59 @@ def certbot_certificate_renew():
     except Exception as e:
         print(e)
 
+def xml_file_update(original_file,updated_file,keystore,password):
+        # parse the server.xml file
+        file = original_file + "/server.xml"
+        tree = ET.parse(file)
+        root = tree.getroot()
+
+        # find the Service element with name="Catalina"
+        service_elem = root.find("./Service[@name='Catalina']")
+
+        # create the Connector element
+        connector_elem = ET.Element('Connector')
+        connector_elem.set('port', '8443')
+        connector_elem.set('protocol', 'HTTP/1.1')
+        connector_elem.set('connectionTimeout', '20000')
+        connector_elem.set('redirectPort', '8443')
+        connector_elem.set('SSLEnabled', 'true')
+        connector_elem.set('scheme', 'https')
+        connector_elem.set('secure', 'true')
+        connector_elem.set('sslProtocol', 'TLS')
+        connector_elem.set('keystoreFile', keystore)
+        connector_elem.set('keystorePass', password)
+
+        # insert the new Connector element before the first Engine element
+        inserted = False
+        for service_child in service_elem:
+            if service_child.tag == 'Engine':
+                service_elem.insert(list(service_elem).index(
+                    service_child), connector_elem)
+                inserted = True
+                break
+
+        if not inserted:
+            service_elem.append(connector_elem)
+
+        # write the updated server.xml file
+
+        tree.write(updated_file)
+
+
+def binding(site_name,thumbprint):
+        # Construct the command string
+        command = f'New-IISSiteBinding -Name "{site_name}" -BindingInformation "*:443:" -CertificateThumbPrint "{thumbprint}" -CertStoreLocation "Cert:\\LocalMachine\\My" -Protocol https'
+
+        # Execute the command as a subprocess
+        result=subprocess.run(["powershell", "-Command", command], capture_output=True, text=True)
+
+        # Check the output for any errors
+        if result.returncode != 0:
+            print(f"Error: {result.stderr}")
+        else:
+            print("Site binding added successfully.")
+            
+            
 
 # certbot_certificate_renew()
 # winacme_certificate_tomcat()
