@@ -1,0 +1,42 @@
+Policy.inf
+[Version]
+
+Signature="$Windows NT$"
+
+ 
+
+[NewRequest]
+
+Subject="CN=Encon Issuing CA SSL Cert"
+
+Exportable=TRUE
+
+KeyLength=2048
+
+KeySpec=1
+
+KeyUsage=0xF0
+
+MachineKeySet=TRUE
+
+ProviderName="Microsoft RSA SChannel Cryptographic Provider"
+
+ProviderType=12
+
+RequestType=PKCS10
+
+SMIME=False
+
+ 
+
+[Extensions]
+
+2.5.29.17="{text}"
+
+_continue_="dns=ca02.encon.com&dns=ca02"
+
+ 
+
+[RequestAttributes]
+
+CertificateTemplate="1.3.6.1.4.1.311.21.8.13773313.9095872.14109829.11238800.241204.173.4396792.12257696"

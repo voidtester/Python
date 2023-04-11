@@ -1,27 +1,28 @@
-#Load the configuration file
-$currentDirectory = Get-Location | Select-Object -ExpandProperty Path
-$subdirectory = "conf.ini"
-$confpath = Join-Path -Path $currentDirectory -ChildPath $subdirectory
-
-$config = Get-Content -Path $confpath -Raw | ConvertFrom-StringData
-
 # Define parameters
 
-$hostname = $config.IIS.hostname
+$hostname = "$arg[0]"
 
-$CAName = $config.IIS.caname
+$CAName = "$arg[1]"
 
-$sitename = $config.IIS.sitename
+$sitename = "$arg[2]"
 
 $certstore = "LocalMachine"
 
-$certfile = $config.IIS.certfile
+$certfile = "$arg[3]"
+
+$csr="$arg[4]"
+
+$certchain="$arg[5]"
+
+$response="$arg[6]"
+
+
 
 # Create a new certificate request using policy.inf
 
 try {
 
-    certreq.exe -new -q -config "$hostname\$CAName" policy.inf c:\temp\request.csr
+    certreq.exe -new -q -config "$hostname\$CAName" policy.inf $csr
 
 }
 
@@ -35,7 +36,7 @@ catch {
 
 try {
 
-    certreq.exe -submit -q -config "$hostname\$CAName" c:\temp\request.csr $certfile c:\temp\cert.p7b c:\temp\response.ful
+    certreq.exe -submit -q -config "$hostname\$CAName" $csr $certfile $certchain $response
 
 }
 
@@ -101,8 +102,8 @@ Write-Output "Certificate bound successfully."
 
 Remove-Item $certfile
 
-Remove-Item c:\temp\cert.p7b
+Remove-Item $certchain
 
-Remove-Item c:\temp\response.ful
+Remove-Item $response
 
-Remove-Item c:\temp\request.csr
+Remove-Item $csr
