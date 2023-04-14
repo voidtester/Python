@@ -55,13 +55,6 @@ def Winacme_certificate_IIS():
         return jsonify({'error': str(e)}),500
 
 
-@app.route('/api/Certbot/renew-cert', methods=['POST'])
-def Certbot_certificate_renew():
-    try:
-        certbot_certificate_renew()
-        return jsonify({"Certificate successfully renewed"}),200
-    except Exception as e:
-        return jsonify({'error': str(e)}),500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0',debug=True)
+    app.run(debug=True)
