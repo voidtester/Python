@@ -2,6 +2,7 @@ import subprocess
 import configparser
 import os
 import xml.etree.ElementTree as ET
+import platform
 
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -17,29 +18,6 @@ ca = conf['CA']
 apache = conf['Apache']
 
 
-def certificate_generation_Tomcat():
-    try:
-        keystore = "echo {passw} | keytool -genkey -v -keyalg RSA -alias tomcat -keystore {key} -storepass {passw} -dname CN={common},OU={unit},O={org},L={local},ST={state},C={country}".format(
-            key=tomcat['keystore'], passw=tomcat['pass'], common=tomcat['cn'], unit=tomcat['ou'], org=tomcat['o'], local=tomcat['l'], state=tomcat['st'], country=tomcat['c'])
-
-        print(keystore)
-        os.system(keystore)
-
-        csr = "keytool -certreq -alias tomcat -keyalg RSA -file {csrfile} -keystore {key} -storepass {passw}".format(
-            csrfile=tomcat['csr'], key=tomcat['keystore'], passw=tomcat['pass'])
-        print(csr)
-        os.system(csr)
-
-        certificate = r"certreq.exe -submit -q -config " + "{}\{} ".format(ca['host'], ca['caname']) + "{} ".format(
-            tomcat['csr']) + "{} ".format(tomcat['issucert']) + "{} ".format(tomcat['certchain']) + "{} ".format(tomcat['response'])
-        print(certificate)
-
-        os.system(certificate)
-
-        return "Certificate issued successfully"
-    except Exception as e:
-        print(e)
-
 
 def cert_import(alias,key,passw,certfile):
     
@@ -48,75 +26,91 @@ def cert_import(alias,key,passw,certfile):
         try:
             os.system(imp)
         except:
-            print("Intermediate CA certifiacte not found")
+            print("Certifiacte not found")
 
     
 
 
+
+
 def certificate_renew_iis():
-    try:
-        policy = dir_path+"/policy.inf"
-        script_path = dir_path+"/Powershell_scripts/renew.ps1"
-        # Build the PowerShell command
-        command = ["powershell.exe", "-ExecutionPolicy", "Unrestricted", script_path, iis['hostname'],
-                   iis['CAName'], iis['sitename'], iis['certfile'], iis['csr'], iis['certchain'], iis['response']]
 
-        # Run the PowerShell command
-        result = subprocess.run(command, capture_output=True, text=True)
-
-        # Print the PowerShell script output
-        print(result.stdout)
-
-        return (result)
-
-    except Exception as e:
-        print(e)
-
-
-
-def winacme_certificate_iis():
-
-    certpath=unzip_file()
+    certpath=unzip_file(a,b)
     certfile=certpath+r"\b"
     script_path = dir_path+"/site_binding.ps1"
     # Build the PowerShell command
     command = ["powershell.exe", "-ExecutionPolicy", "Unrestricted", script_path, iis['sitename'],certfile]
 
     # Run the PowerShell command
-    result = subprocess.run(command, capture_output=True, text=True)
+    result = subprocess.run(command,input="R\n", capture_output=True, text=True)
 
     # Print the PowerShell script output
     print(result.stdout)
     
 
-def winacme_certificate_tomcat():
-    certpath=unzip_file(z,un)
-    certfile=certpath+r"\b"
+def certificate_renew_tomcat():
+    system=platform.system()
+    if(system=='Windows'):
+        #certpath=unzip_file(z,un)
+        #certfile=certpath+r"\b"
+        
+        # create fresh keystore for tomcat server (ACME)
+        keystore = "echo {passw} | keytool -genkey -v -keyalg RSA -alias tomcat -keystore {key} -storepass {passw} -dname CN={common},OU={unit},O={org},L={local},ST={state},C={country}".format(
+            key=tomcat['keystore'], passw=tomcat['pass'], common=tomcat['cn'], unit=tomcat['ou'], org=tomcat['o'], local=tomcat['l'], state=tomcat['st'], country=tomcat['c'])
+
+        try:
+            os.system(keystore)
+        except Exception as e:
+            print(e)
+
+        # import the certificate to keystore
+        cert_import("ssl",tomcat['keystore'],tomcat['pass'],certfile)
+
     
-    # create fresh keystore for tomcat server (ACME)
-    keystore = "echo {passw} | keytool -genkey -v -keyalg RSA -alias tomcat -keystore {key} -storepass {passw} -dname CN={common},OU={unit},O={org},L={local},ST={state},C={country}".format(
-        key=tomcat['keystore'], passw=tomcat['pass'], common=tomcat['cn'], unit=tomcat['ou'], org=tomcat['o'], local=tomcat['l'], state=tomcat['st'], country=tomcat['c'])
+        try:
+            subprocess.run(["powershell","-Command","Get-Service *tomcat*| Stop-Service"])
+    
+        except:
+            print("failed to stop Tomcat Service")
+        try:
+            subprocess.run(["powershell","-Command","Get-Service *tomcat*| Start-Service"])
+    
+        except:
+            print("failed to start Tomcat Service")
+        
+    if(system=='Linux'):
+        if(platform.release=='Debian'):
+             #certpath=unzip_file(z,un)
+            #certfile=certpath+r"\b"
+            
+            # create fresh keystore for tomcat server (ACME)
+            keystore = "echo {passw} | keytool -genkey -v -keyalg RSA -alias tomcat -keystore {key} -storepass {passw} -dname CN={common},OU={unit},O={org},L={local},ST={state},C={country}".format(
+                key=tomcat['keystore_linux'], passw=tomcat['pass_linux'], common=tomcat['cn'], unit=tomcat['ou'], org=tomcat['o'], local=tomcat['l'], state=tomcat['st'], country=tomcat['c'])
 
-    try:
-        os.system(keystore)
-    except Exception as e:
-        print(e)
+            try:
+                os.system(keystore)
+            except Exception as e:
+                print(e)
 
-    # import the certificate to keystore
-    cert_import("ssl",tomcat['keystore'],tomcat['pass'],certfile)
+            # import the certificate to keystore
+            cert_import("ssl",tomcat['keystore'],tomcat['pass'],certfile)
+            if(platform.release=='Red Hat'):
+                print()
+        restart="systemctl | grep tomcat* | restart "        
+        os.system(restart)
 
-   
-    try:
-        subprocess.run(["powershell","-Command","Get-Service *tomcat*| Stop-Service"])
-   
-    except:
-        print("failed to stop Tomcat Service")
-    try:
-        subprocess.run(["powershell","-Command","Get-Service *tomcat*| Start-Service"])
-   
-    except:
-        print("failed to start Tomcat Service")
-
+def certificate_renew_apache():
+    system=platform.system()
+    if(system=='Windows'):
+        certpath=unzip_file(z,un)
+        #certfile=certpath+r"\b"
+    if(system=='Linux'):
+        if(platform.release=='Debian'):
+            print()
+        if(platform.release=='Red Hat'):
+            print()
+        
+    
 
 
 
@@ -127,6 +121,10 @@ def unzip_file(zip_path,unzip_path):
     except Exception as e:
         print("Error encountered",e)
         
+
+def unzip_linux(zip_file,destination_folder):
+    command=f"unzip {zip_file} -d {destination_folder}"
+    os.system(command)    
         
 def add_pfxcert_to_store():
     # Replace these values with the actual path to your PFX file and password
@@ -141,7 +139,7 @@ def add_pfxcert_to_store():
 
 def cert_renew_Tomcat(keystore):
         remove_file(keystore)
-        winacme_certificate_tomcat()
+        certificate_renew_tomcat()
         
       
 
@@ -152,7 +150,8 @@ def remove_file(file):
 # certbot_certificate_renew()
 # winacme_certificate_tomcat()
 # certbot_certificate()
-# certificate_generation_Tomcat()
+#certificate_renew_tomcat()
 # cert_import()
 # certificate_renew_iis()
 # winacme_certificate_iis()
+certificate_renew_apache()
