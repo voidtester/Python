@@ -1,39 +1,43 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify
 from Automation import *
 
 app = Flask(__name__)
 
-@app.route('/api/tomcat/certificate-renew', methods=['POST'])
+
+@app.route('/')
+def root():
+        return "Welcome to Root directory"
+        
+@app.route('/api/tomcat/certificate-renew')
 def Certificate_renew_tomcat():
         try:
             certificate_renew_tomcat()
-            return jsonify({"Certificate renewed successfully for Tomcat"}),200
+            return {"Certificate renewed successfully for Tomcat"}
         except Exception as e:
-            return jsonify({'error': str(e)}),500
-
-@app.route('/api/IIS/certificate-renew', methods=['POST'])
-def Cert_import():
+            return jsonify({'error': str(e)})
+@app.route('/api/IIS/certificate-renew')
+def IIS():
         try:
             certificate_renew_iis()
-            return ({"Certificate renewed successfully for IIS "}),200     
+            return ({"Certificate renewed successfully for IIS "})     
         except Exception as e:
-            return jsonify({'error': str(e)}),500
- 
-@app.route('/api/apache/certificate-renew', methods=['POST'])
-def Crt_import():
+            return jsonify({'error': str(e)})
+
+@app.route('/api/apache/certificate-renew')
+def apche():
         try:
-            cert_import()
-            return ({"Certificate renewed successfully for Apache "}),200     
+            certificate_renew_apache()
+            return ({"Certificate renewed successfully for Apache "})  
         except Exception as e:
-            return jsonify({'error': str(e)}),500
+            return jsonify({'error': str(e)})
      
-@app.route('/api/nginx/certificate-renew', methods=['POST'])
-def ert_import():
+@app.route('/api/nginx/certificate-renew')
+def nginx():
         try:
-            cert_import()
-            return ({"Certificate renewed successfully for Nginx "}),200     
+            certificate_renew_nginx()
+            return ({"Certificate renewed successfully for Nginx "})     
         except Exception as e:
-            return jsonify({'error': str(e)}),500
+            return jsonify({'error': str(e)})
  
 
 if __name__ == '__main__':

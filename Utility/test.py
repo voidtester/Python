@@ -1,25 +1,7 @@
 
 ##########################################################################
 
-#thumbprint extraction using cryptography module
 
-from cryptography import x509
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.serialization import load_pkcs12
-
-# Load the PFX file
-with open(pfx_path, 'rb') as f:
-    pfx_data = f.read()
-
-# Load the PFX data and extract the certificate
-pfx = load_pkcs12(pfx_data, pfx_password)
-cert = pfx.public_key().certificate
-
-# Calculate the thumbprint of the certificate
-thumbprint = cert.fingerprint(hashes.SHA1())
-
-###########################################################################################
 
 
 import subprocess
@@ -115,3 +97,12 @@ def x():
     except:
         print("Failed to retrieve the thumbprint of the certificate")
  
+print(os.path.expanduser("~")+"/Downloads")
+
+def folder_exists(folder_path):
+    return os.path.exists(folder_path) and os.path.isdir(folder_path)
+
+if folder_exists(r"K:\Project"):
+    print("Folder exists!")
+else:
+    print("Folder does not exist.")
