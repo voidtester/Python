@@ -17,7 +17,9 @@ ca = conf['CA']
 
 apache = conf['Apache']
 
-downloads=os.path.expanduser("~")+"/Downloads"
+downloads=os.path.expanduser("~")+"\Downloads"
+documents=os.path.expanduser("~")+"\Documents"
+ecfolder=downloads+"\EncryptionConsulting"
 tmp="/tmp/"
 #certificate import for keystore 
 #Tomcat using keystore
@@ -126,43 +128,78 @@ def certificate_renew_apache():
     if(system=='Windows'):
         certpath=unzip_file(z,un)
         #certfile=certpath+r"\b"
-        move_file()
+        
+        try:
+            if folder_exists(ecfolder):
+                #for certificate
+                move_file_windows()
+                #for private key
+                move_file_windows()
+        
+            else:
+                createfolder=f"New-Item -Path {ecfolder} -ItemType Directory"
+                subprocess.run(["powershell.exe",  "-Command", createfolder], capture_output=True, text=True)   
+                move_file_windows(,ecfolder)
+                #for private key
+                move_file_windows()
+        except:
+            "Failed to import cert to folder "
         stop_apache()
         start_apache()
     if platform.system() == 'Linux' and platform.release().startswith('debian'):
-        certpath=unzip_file(z,un)
+        certpath=unzip_file(z,downloads)
         #certfile=certpath+r"\b"
-        move_file()
+        #certfile=certpath+r"\b"
+        #for certificate 
+        move_file_Linux()
+        #for private key
+        move_file_Linux()
         stop_apache()
         start_apache()
     if platform.system() == 'Linux' and platform.release().startswith('Red Hat Enterprise Linux'):
         certpath=unzip_file(z,un)
         #certfile=certpath+r"\b"
-        move_file()
+        #for certificate 
+        move_file_Linux()
+        #for private key
+        move_file_Linux()
+        
         stop_apache()
         start_apache()
 
 #Approach Replacing old certificates with same name new certificate to avoid changing config file
 #Migrating certificate and private key to the location where previous files are 
         
-def certificate_renew_nginx():
+def certificate_renew_nginx()`  `:
     system=platform.system()
     if(system=='Windows'):
-        certpath=unzip_file(z,un)
+        certpath=unzip_file(z,downloads)
         #certfile=certpath+r"\b"
-        move_file()
-        stop_nginx()
-        start_nginx()
+        try:
+            if folder_exists(ecfolder):
+                #for certificate
+                move_file_windows()
+                #for private key
+                move_file_windows()
+        
+            else:
+                createfolder=f"New-Item -Path {ecfolder} -ItemType Directory"
+                subprocess.run(["powershell.exe",  "-Command", createfolder], capture_output=True, text=True)   
+                move_file_windows(,ecfolder)
+                #for private key
+                move_file_windows()
+        except:
+            "Failed to import cert to folder "
         
     if platform.system() == 'Linux' and platform.release().startswith('Debian'):
-        certpath=unzip_file_linux(z,un)
+        certpath=unzip_file_linux(z,downloads)
         #certfile=certpath+r"\b"
         move_file_windows()
         stop_nginx()
         start_nginx()          
 
     if platform.system() == 'Linux' and platform.release().startswith('Red Hat Enterprise Linux'):
-        certpath=unzip_file_linux(z,un)
+        certpath=unzip_file_linux(z,downloads)
         #certfile=certpath+r"\b"
         move_file_Linux()
         stop_nginx()
@@ -200,7 +237,7 @@ def cert_renew_Tomcat(keystore):
 
 def move_file_windows(src_file_path, dest_dir_path):
         # For Windows
-        shutil.move(src_file_path, dest_dir_path)
+        command=f"Copy-Item {src_file_path} {dest_dir_path}"
 
 def move_file_Linux(src_file_path, dest_dir_path):
         # For Linux
@@ -214,7 +251,7 @@ def delete_file_windows(file_path):
     
 def delete_file_Linux(file_path):
     # For Linux
-    command=f"rm -f {file_path}"
+    command=f"rm -rf {file_path}"
     subprocess.run(command, shell=True, check=True)
 
 
@@ -267,6 +304,11 @@ def stop_nginx():
         subprocess.run(['sudo','systemctl', 'stop','nginx.service'])
     else:
         print("Unsupported operating system.")
+
+
+def folder_exists(folder_path):
+    return os.path.exists(folder_path) and os.path.isdir(folder_path)
+
     
 # certbot_certificate_renew()
 # winacme_certificate_tomcat()

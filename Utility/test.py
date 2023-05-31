@@ -102,7 +102,7 @@ print(os.path.expanduser("~")+"/Downloads")
 def folder_exists(folder_path):
     return os.path.exists(folder_path) and os.path.isdir(folder_path)
 
-if folder_exists(r"K:\Project"):
+if folder_exists(r"K:\ProjectS"):
     print("Folder exists!")
 else:
     print("Folder does not exist.")
