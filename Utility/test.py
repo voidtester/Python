@@ -106,3 +106,7 @@ if folder_exists(r"K:\ProjectS"):
     print("Folder exists!")
 else:
     print("Folder does not exist.")
+
+tri=r"type K:\private_key_password"    
+command=os.system(tri)
+print(command)
